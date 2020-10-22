@@ -13,7 +13,7 @@ RSpec.describe "Cats", type: :request do
     json = JSON.parse(response.body)
 
     # Assure that we got a successful response
-    expect(response).to have_http_status(:ok)
+    expect(response).to have_http_status(200)
 
     # Assure that we got one result back as expected
     expect(json.length).to eq 1
@@ -33,7 +33,7 @@ RSpec.describe "Cats", type: :request do
     post '/cats', params: cat_params
 
     # Assure that we get a success back
-    expect(response).to have_http_status(:ok)
+    expect(response).to have_http_status(200)
 
     # Look up the cat we expect to be created in the Database
     cat = Cat.first
@@ -97,5 +97,79 @@ RSpec.describe "Cats", type: :request do
     puts cat.valid?
   end
 
+
+  it "doesn't create a cat without a name" do
+    cat_params = {
+      cat: {
+        age: 2,
+        enjoys: 'Walks in the park'
+      }
+    }
   
+    post '/cats', params: cat_params
+    expect(response.status).to eq 422
+    json = JSON.parse(response.body)
+    expect(json['name']).to include "can't be blank"
+  end
+
+  it "sends useful information" do
+    cat_params = {
+      cat: {
+        name: 'Kitty',
+        age: 2,
+        enjoys: 'Walks in the park'
+      }
+    }
+  
+    post '/cats', params: cat_params
+    get '/cats', params: cat_params
+    expect(response.status).to eq 200
+    json = JSON.parse(response.body)
+    expect(json).to_not be_empty
+  end
+
+  it "doesn't create a cat without an age" do
+    cat_params = {
+      cat: {
+        name: 'kitty',
+        enjoys: 'Walks in the park'
+      }
+    }
+  
+    post '/cats', params: cat_params
+    expect(response.status).to eq 422
+    json = JSON.parse(response.body)
+    expect(json['age']).to include "can't be blank"
+  end
+
+
+  it "doesn't create a cat without an enjoys description" do
+    cat_params = {
+      cat: {
+        name: 'Kitty',
+        age: 2
+      }
+    }
+  
+    post '/cats', params: cat_params
+    expect(response.status).to eq 422
+    json = JSON.parse(response.body)
+    puts json['enjoys']
+    expect(json['enjoys']).to include "can't be blank"
+  end
+
+  it "makes sure that the enjoys value is at least 10 characters long" do
+    cat_params = {
+      cat: {
+        name: 'Kitty',
+        age: 2,
+        enjoys: 'sleep'
+      }
+    }
+
+    post '/cats', params: cat_params
+    cat = Cat.first
+    json = JSON.parse(response.body)
+    expect(json['enjoys']).to include "is too short (minimum is 10 characters)"
+  end  
 end
